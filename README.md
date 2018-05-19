@@ -1,2 +1,2 @@
-# pgen
+#pgen
 PGEN parser generator
