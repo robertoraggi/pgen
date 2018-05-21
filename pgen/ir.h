@@ -43,6 +43,7 @@ struct CJump;
 struct Expr;
 struct Name;
 struct Temp;
+struct CharLiteral;
 
 struct StmtVisitor {
   virtual ~StmtVisitor() = default;
@@ -60,14 +61,16 @@ struct ExprVisitor {
   virtual void visit(Name*) = 0;
   virtual void visit(Temp*) = 0;
   virtual void visit(Code*) = 0;
+  virtual void visit(CharLiteral*) = 0;
 };
 
 struct Expr {
   virtual ~Expr() = default;
   virtual void accept(ExprVisitor*) = 0;
-  virtual Name* asName() { return 0; }
-  virtual Temp* asTemp() { return 0; }
-  virtual Code* asCode() { return 0; }
+  virtual Name* asName() { return nullptr; }
+  virtual Temp* asTemp() { return nullptr; }
+  virtual Code* asCode() { return nullptr; }
+  virtual CharLiteral* asCharLiteral() { return nullptr; }
 };
 
 struct Stmt {
@@ -104,11 +107,23 @@ struct Code final : Expr {
   std::string text;
   int line;
 
-  Code(std::string text, int line = -1) : text(std::move(text)), line(line) {}
+  Code(std::string text, int line) : text(std::move(text)), line(line) {}
 
   void accept(ExprVisitor* v) override { v->visit(this); }
 
   Code* asCode() override { return this; }
+};
+
+struct CharLiteral final : Expr {
+  std::string value;
+  int line;
+
+  CharLiteral(std::string value, int line)
+      : value(std::move(value)), line(line) {}
+
+  void accept(ExprVisitor* v) override { v->visit(this); }
+
+  CharLiteral* asCharLiteral() override { return this; }
 };
 
 struct Exp final : Stmt {
@@ -188,6 +203,7 @@ struct BasicBlock final : std::vector<Stmt*> {
 
   Name* NAME(ast::Symbol* sym);
   Code* CODE(std::string text, int line = -1);
+  CharLiteral* CHAR_LITERAL(std::string value, int line = -1);
 
   void EXP(Expr* expr);
   void EXP(std::string text, int line = -1);
@@ -210,6 +226,7 @@ struct Function final : std::vector<BasicBlock*> {
   std::forward_list<CJump> cjumps;
   std::forward_list<Name> names;
   std::forward_list<Temp> temps;
+  std::forward_list<CharLiteral> charLiterals;
   std::forward_list<BasicBlock> blocks;
   unsigned uniqueTempCount = 0;
 

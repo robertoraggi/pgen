@@ -30,6 +30,7 @@ namespace ast {
 struct Node;
 struct Grammar;
 struct Rule;
+struct CharLiteral;
 struct Symbol;
 struct Lookahead;
 struct Code;
@@ -45,6 +46,7 @@ struct Visitor {
   virtual ~Visitor() = default;
   virtual void visit(Grammar*) = 0;
   virtual void visit(Rule*) = 0;
+  virtual void visit(CharLiteral*) = 0;
   virtual void visit(Symbol*) = 0;
   virtual void visit(Code*) = 0;
   virtual void visit(And*) = 0;
@@ -106,6 +108,15 @@ struct Star final : Postfix {
 
 struct Question final : Postfix {
   using Postfix::Postfix;
+
+  void accept(Visitor* v) override { v->visit(this); }
+};
+
+struct CharLiteral final : Node {
+  std::string value;
+  int line;
+
+  CharLiteral(std::string value, int line) : value(value), line(line) {}
 
   void accept(Visitor* v) override { v->visit(this); }
 };

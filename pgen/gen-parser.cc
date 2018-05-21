@@ -83,6 +83,7 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
   }
 
   void visit(IR::Code*) { assert(!"unreachable"); }
+  void visit(IR::CharLiteral*) { assert(!"unreachable"); }
 
   void visit(IR::Move* m) {
     m->target->accept(this);
@@ -191,11 +192,42 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
     }
   }
 
+  void outCJump(IR::CJump* cj, IR::CharLiteral* literal) {
+    IR::BasicBlock* target = cj->iftrue;
+    IR::BasicBlock* cont = cj->iffalse;
+    std::string unop = "";
+    std::string binop = "==";
+
+    if (nextBlock == cj->iftrue) {
+      std::swap(target, cont);
+      unop = "!";
+      binop = "!=";
+    }
+
+    if (FLAGS_lines) {
+      out << std::endl;
+      fmt::print(out, "#line {0} \"{1}\"", literal->line, FLAGS_input);
+      out << std::endl;
+    }
+
+    fmt::print(out, "\tif (yytoken() {0} {1}) goto L{2};", binop,
+               literal->value, target->index);
+
+    out << std::endl;
+
+    if (cont != nextBlock) {
+      fmt::print(out, "\tgoto L{0};", cont->index);
+      out << std::endl;
+    }
+  }
+
   void visit(IR::CJump* cj) {
     if (auto name = cj->cond->asName()) {
       outCJump(cj, name);
-    } else if (auto c = cj->cond->asCode()) {
-      outCJump(cj, c);
+    } else if (auto code = cj->cond->asCode()) {
+      outCJump(cj, code);
+    } else if (auto charLiteral = cj->cond->asCharLiteral()) {
+      outCJump(cj, charLiteral);
     } else {
       assert(!"unreachable");
     }
@@ -326,6 +358,15 @@ void GenParser::visit(ast::Rule* rule) {
   print(out, grammar_, &f);
 
   out << "}" << std::endl;
+}
+
+void GenParser::visit(ast::CharLiteral* node) {
+  auto iftrue = newBasicBlock();
+  block->CJUMP(block->CHAR_LITERAL(node->value, node->line), iftrue,
+               code.iffalse);
+  place(iftrue);
+  block->EXP("yyconsume()");
+  block->JUMP(code.iftrue);
 }
 
 void GenParser::visit(ast::Symbol* sym) {

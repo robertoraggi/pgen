@@ -29,6 +29,7 @@ class ClassifySymbols final : ast::Visitor {
  private:
   void visit(ast::Grammar* node) override;
   void visit(ast::Rule* node) override;
+  void visit(ast::CharLiteral* node) override;
   void visit(ast::Symbol* node) override;
   void visit(ast::Code* node) override;
   void visit(ast::And* node) override;

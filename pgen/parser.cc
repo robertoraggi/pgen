@@ -175,6 +175,11 @@ ast::Node* Parser::parsePrimary() {
     yyexpect(TOK::RPAREN);
     return item;
   }
+  if (yytoken->is(TOK::CHAR_LITERAL)) {
+    auto item = new ast::CharLiteral(yytoken->text, yytoken->line);
+    ++yytoken;
+    return item;
+  }
   return parseId();
 }
 

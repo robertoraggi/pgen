@@ -55,6 +55,8 @@ void ClassifySymbols::visit(ast::Rule* rule) {
   if (rule->def) rule->def->accept(this);
 }
 
+void ClassifySymbols::visit(ast::CharLiteral*) {}
+
 void ClassifySymbols::visit(ast::Symbol* sym) {
   grammar_->names.emplace(sym->name);
 }

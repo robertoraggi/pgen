@@ -46,6 +46,11 @@ Code* BasicBlock::CODE(std::string text, int line) {
   return &function->codes.front();
 }
 
+CharLiteral* BasicBlock::CHAR_LITERAL(std::string value, int line) {
+  function->charLiterals.emplace_front(std::move(value), line);
+  return &function->charLiterals.front();
+}
+
 void BasicBlock::EXP(Expr* expr) {
   if (isTerminated()) return;
   function->exps.emplace_front(expr);

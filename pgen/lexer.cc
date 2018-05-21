@@ -20,6 +20,9 @@
 
 #include "pgen/lexer.h"
 
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+
 #include <cassert>
 #include <cctype>
 
@@ -68,6 +71,22 @@ again:
       goto again;
     }
     return TOK::SLASH;
+  }
+  if (ch == '\'') {
+    yytext = ch;
+    while (yychar && yychar != '\'' && yychar != '\n') {
+      if (yychar == '\\') {
+        yytext += yychar;
+        yyinp();
+        if (!yychar || yychar == '\n') break;
+      }
+      yytext += yychar;
+      yyinp();
+    }
+    if (yychar != '\'') return TOK::ERROR;
+    yytext += yychar;
+    yyinp();
+    return TOK::CHAR_LITERAL;
   }
   if (ch == '{') {
     skip(ch, '{', '}');

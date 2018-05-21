@@ -51,6 +51,7 @@ class DisposeAST final : ast::Visitor {
     ast->def->accept(this);
     delete ast;
   }
+  void visit(ast::CharLiteral* ast) override { delete ast; }
   void visit(ast::Symbol* ast) override { delete ast; }
   void visit(ast::Code* ast) override { delete ast; }
   void visit(ast::And* ast) override {

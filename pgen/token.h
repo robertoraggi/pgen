@@ -26,6 +26,7 @@
 enum struct TOK {
   EOF_SYMBOL,
   ERROR,
+  CHAR_LITERAL,
   IDENTIFIER,
   BAR,
   EXTRA,
