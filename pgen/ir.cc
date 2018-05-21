@@ -37,52 +37,63 @@ Stmt* BasicBlock::terminator() const {
 }
 
 Name* BasicBlock::NAME(ast::Symbol* sym) {
-  return &function->names.emplace_front(sym);
+  function->names.emplace_front(sym);
+  return &function->names.front();
 }
 
 Code* BasicBlock::CODE(std::string text, int line) {
-  return &function->codes.emplace_front(std::move(text), line);
+  function->codes.emplace_front(std::move(text), line);
+  return &function->codes.front();
 }
 
 void BasicBlock::EXP(Expr* expr) {
   if (isTerminated()) return;
-  push_back(&function->exps.emplace_front(expr));
+  function->exps.emplace_front(expr);
+  push_back(&function->exps.front());
 }
 
 void BasicBlock::EXP(std::string text, int line) {
   if (isTerminated()) return;
-  auto code = &function->codes.emplace_front(std::move(text), line);
-  push_back(&function->exps.emplace_front(code));
+  function->codes.emplace_front(std::move(text), line);
+  auto code = &function->codes.front();
+  function->exps.emplace_front(code);
+  push_back(&function->exps.front());
 }
 
 void BasicBlock::SAVE(Temp* target) {
   if (isTerminated()) return;
-  push_back(&function->saves.emplace_front(target));
+  function->saves.emplace_front(target);
+  push_back(&function->saves.front());
 }
 
 void BasicBlock::RESTORE(Temp* source) {
   if (isTerminated()) return;
-  push_back(&function->restores.emplace_front(source));
+  function->restores.emplace_front(source);
+  push_back(&function->restores.front());
 }
 
 void BasicBlock::MOVE(Expr* target, Expr* source) {
   if (isTerminated()) return;
-  push_back(&function->moves.emplace_front(target, source));
+  function->moves.emplace_front(target, source);
+  push_back(&function->moves.front());
 }
 
 void BasicBlock::JUMP(BasicBlock* target) {
   if (isTerminated()) return;
-  push_back(&function->jumps.emplace_front(target));
+  function->jumps.emplace_front(target);
+  push_back(&function->jumps.front());
 }
 
 void BasicBlock::CJUMP(Expr* cond, BasicBlock* iftrue, BasicBlock* iffalse) {
   if (isTerminated()) return;
-  push_back(&function->cjumps.emplace_front(cond, iftrue, iffalse));
+  function->cjumps.emplace_front(cond, iftrue, iffalse);
+  push_back(&function->cjumps.front());
 }
 
 void BasicBlock::RET(bool result) {
   if (isTerminated()) return;
-  push_back(&function->rets.emplace_front(result));
+  function->rets.emplace_front(result);
+  push_back(&function->rets.front());
 }
 
 Temp* Function::newTemp(std::string type) {
@@ -90,10 +101,14 @@ Temp* Function::newTemp(std::string type) {
 }
 
 Temp* Function::newTemp(std::string type, std::string name) {
-  return &temps.emplace_front(std::move(type), std::move(name));
+  temps.emplace_front(std::move(type), std::move(name));
+  return &temps.front();
 }
 
-BasicBlock* Function::newBasicBlock() { return &blocks.emplace_front(this); }
+BasicBlock* Function::newBasicBlock() {
+  blocks.emplace_front(this);
+  return &blocks.front();
+}
 
 void Function::place(BasicBlock* block) {
   assert(block->index == -1);

@@ -21,6 +21,7 @@
 #pragma once
 
 #include <iostream>
+#include <string>
 
 enum struct TOK {
   EOF_SYMBOL,

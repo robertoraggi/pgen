@@ -91,11 +91,6 @@ std::string ReadFile(const std::string& filename) {
 }
 }  // namespace
 
-namespace fLB {
-extern bool FLAGS_help;
-extern bool FLAGS_helpshort;
-}  // namespace fLB
-
 struct FlagsScope {
   ~FlagsScope() { gflags::ShutDownCommandLineFlags(); }
 };
