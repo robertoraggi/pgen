@@ -27,61 +27,13 @@
 #include <iostream>
 #include <sstream>
 
+#include "pgen/dispose-ast.h"
 #include "pgen/flags.h"
 #include "pgen/gen-parser.h"
 #include "pgen/lexer.h"
 #include "pgen/parser.h"
 
 namespace {
-
-class DisposeAST final : ast::Visitor {
- public:
-  void operator()(ast::Node* ast) {
-    if (ast) ast->accept(this);
-  }
-
- private:
-  void visit(ast::Grammar* ast) override {
-    for (auto rule : ast->rules) {
-      rule->accept(this);
-    }
-    delete ast;
-  }
-  void visit(ast::Rule* ast) override {
-    ast->def->accept(this);
-    delete ast;
-  }
-  void visit(ast::CharLiteral* ast) override { delete ast; }
-  void visit(ast::Symbol* ast) override { delete ast; }
-  void visit(ast::Code* ast) override { delete ast; }
-  void visit(ast::And* ast) override {
-    ast->head->accept(this);
-    ast->tail->accept(this);
-    delete ast;
-  }
-  void visit(ast::Or* ast) override {
-    ast->head->accept(this);
-    ast->tail->accept(this);
-    delete ast;
-  }
-  void visit(ast::Lookahead* ast) override {
-    ast->head->accept(this);
-    ast->tail->accept(this);
-    delete ast;
-  }
-  void visit(ast::Plus* ast) override {
-    ast->item->accept(this);
-    delete ast;
-  }
-  void visit(ast::Star* ast) override {
-    ast->item->accept(this);
-    delete ast;
-  }
-  void visit(ast::Question* ast) override {
-    ast->item->accept(this);
-    delete ast;
-  }
-};
 
 std::string ReadFile(const std::string& filename) {
   std::ifstream in(filename);
@@ -90,6 +42,7 @@ std::string ReadFile(const std::string& filename) {
   in.close();
   return out.str();
 }
+
 }  // namespace
 
 struct FlagsScope {
@@ -132,7 +85,7 @@ int main(int argc, char* argv[]) {
   GenParser gen(out);
   gen(grammar, verbatim);
 
-  DisposeAST disposeAST;
+  ast::DisposeAST disposeAST;
   disposeAST(grammar);
 
   return EXIT_SUCCESS;

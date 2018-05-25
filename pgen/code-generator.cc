@@ -24,28 +24,10 @@
 
 CodeGenerator::CodeGenerator(std::ostream& out) : out(out) {}
 
-IR::Temp* CodeGenerator::newTemp(std::string type) {
-  return function->newTemp(std::move(type));
-}
-
-IR::Temp* CodeGenerator::newTemp(std::string type, std::string name) {
-  return function->newTemp(std::move(type), std::move(name));
-}
-
-IR::BasicBlock* CodeGenerator::newBasicBlock() {
-  return function->newBasicBlock();
-}
-
-void CodeGenerator::place(IR::BasicBlock* block) {
-  function->place(block);
-  this->block = block;
-}
-
 void CodeGenerator::condition(ast::Node* item, IR::BasicBlock* iftrue,
                               IR::BasicBlock* iffalse) {
   Result r(iftrue, iffalse);
   std::swap(code, r);
   item->accept(this);
   std::swap(code, r);
-  assert(block->isTerminated());
 }

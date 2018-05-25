@@ -23,11 +23,14 @@
 #include "pgen/ast.h"
 
 #include <forward_list>
+#include <tuple>
 #include <vector>
 
 namespace IR {
 
-struct Function;
+class IRBuilder;
+class Function;
+
 struct BasicBlock;
 // statements
 struct Stmt;
@@ -58,19 +61,19 @@ struct StmtVisitor {
 
 struct ExprVisitor {
   virtual ~ExprVisitor() = default;
-  virtual void visit(Name*) = 0;
-  virtual void visit(Temp*) = 0;
-  virtual void visit(Code*) = 0;
-  virtual void visit(CharLiteral*) = 0;
+  virtual void visit(const Name*) = 0;
+  virtual void visit(const Temp*) = 0;
+  virtual void visit(const Code*) = 0;
+  virtual void visit(const CharLiteral*) = 0;
 };
 
 struct Expr {
   virtual ~Expr() = default;
-  virtual void accept(ExprVisitor*) = 0;
-  virtual Name* asName() { return nullptr; }
-  virtual Temp* asTemp() { return nullptr; }
-  virtual Code* asCode() { return nullptr; }
-  virtual CharLiteral* asCharLiteral() { return nullptr; }
+  virtual void accept(ExprVisitor*) const = 0;
+  virtual const Name* asName() const { return nullptr; }
+  virtual const Temp* asTemp() const { return nullptr; }
+  virtual const Code* asCode() const { return nullptr; }
+  virtual const CharLiteral* asCharLiteral() const { return nullptr; }
 };
 
 struct Stmt {
@@ -79,113 +82,113 @@ struct Stmt {
   virtual bool isTerminator() const { return false; }
 };
 
-struct Name final : Expr {
-  ast::Symbol* sym;
+struct Name final : Expr, std::tuple<ast::Symbol*> {
+  using tuple::tuple;
 
-  Name(ast::Symbol* sym) : sym(sym) {}
+  ast::Symbol* sym() const { return std::get<0>(*this); }
 
-  void accept(ExprVisitor* v) override { v->visit(this); }
+  void accept(ExprVisitor* v) const override { v->visit(this); }
 
-  Name* asName() override final { return this; }
+  const Name* asName() const override { return this; }
 };
 
-struct Temp final : Expr {
-  std::string type;
-  std::string name;
+struct Temp final : Expr, std::tuple<std::string, std::string> {
+  using tuple::tuple;
 
-  Temp(std::string type, std::string name)
-      : type(std::move(type)), name(std::move(name)) {
-    if (this->type.empty()) this->type = "unsigned";
+  const std::string& type() const {
+    static std::string kDefaultType{"unsigned"};
+    const std::string& ty = std::get<0>(*this);
+    return !ty.empty() ? ty : kDefaultType;
   }
 
-  void accept(ExprVisitor* v) override { v->visit(this); }
+  const std::string& name() const { return std::get<1>(*this); }
 
-  Temp* asTemp() override final { return this; }
+  void accept(ExprVisitor* v) const override { v->visit(this); }
+
+  const Temp* asTemp() const override { return this; }
 };
 
-struct Code final : Expr {
-  std::string text;
-  int line;
+struct Code final : Expr, std::tuple<std::string, int> {
+  using tuple::tuple;
 
-  Code(std::string text, int line) : text(std::move(text)), line(line) {}
+  const std::string& text() const { return std::get<0>(*this); }
+  int line() const { return std::get<1>(*this); }
 
-  void accept(ExprVisitor* v) override { v->visit(this); }
+  void accept(ExprVisitor* v) const override { v->visit(this); }
 
-  Code* asCode() override { return this; }
+  const Code* asCode() const override { return this; }
 };
 
-struct CharLiteral final : Expr {
-  std::string value;
-  int line;
+struct CharLiteral final : Expr, std::tuple<std::string, int> {
+  using tuple::tuple;
 
-  CharLiteral(std::string value, int line)
-      : value(std::move(value)), line(line) {}
+  const std::string& value() const { return std::get<0>(*this); }
+  int line() const { return std::get<1>(*this); }
 
-  void accept(ExprVisitor* v) override { v->visit(this); }
+  void accept(ExprVisitor* v) const override { v->visit(this); }
 
-  CharLiteral* asCharLiteral() override { return this; }
+  const CharLiteral* asCharLiteral() const override { return this; }
 };
 
-struct Exp final : Stmt {
-  Expr* expr;
+struct Exp final : Stmt, std::tuple<const Expr*> {
+  using tuple::tuple;
 
-  Exp(Expr* expr) : expr(expr) {}
+  const Expr* expr() const { return std::get<0>(*this); }
 
   void accept(StmtVisitor* v) override { v->visit(this); }
 };
 
-struct Move final : Stmt {
-  Expr* target;
-  Expr* source;
+struct Move final : Stmt, std::tuple<const Expr*, const Expr*> {
+  using tuple::tuple;
 
-  Move(Expr* target, Expr* source) : target(target), source(source) {}
-
-  void accept(StmtVisitor* v) override { v->visit(this); }
-};
-
-struct Save final : Stmt {
-  Temp* target;
-
-  Save(Temp* target) : target(target) {}
+  const Expr* target() const { return std::get<0>(*this); }
+  const Expr* source() const { return std::get<0>(*this); }
 
   void accept(StmtVisitor* v) override { v->visit(this); }
 };
 
-struct Restore final : Stmt {
-  Temp* source;
+struct Save final : Stmt, std::tuple<const Temp*> {
+  using tuple::tuple;
 
-  Restore(Temp* source) : source(source) {}
+  const Temp* target() const { return std::get<0>(*this); }
 
   void accept(StmtVisitor* v) override { v->visit(this); }
 };
 
-struct Ret final : Stmt {
-  bool result;
+struct Restore final : Stmt, std::tuple<const Temp*> {
+  using tuple::tuple;
 
-  Ret(bool result) : result(result) {}
+  const Temp* source() const { return std::get<0>(*this); }
 
   void accept(StmtVisitor* v) override { v->visit(this); }
-
-  bool isTerminator() const override { return true; }
 };
 
-struct Jump final : Stmt {
-  BasicBlock* target;
+struct Ret final : Stmt, std::tuple<bool> {
+  using tuple::tuple;
 
-  Jump(BasicBlock* target) : target(target) {}
+  bool result() const { return std::get<0>(*this); }
 
   void accept(StmtVisitor* v) override { v->visit(this); }
 
   bool isTerminator() const override { return true; }
 };
 
-struct CJump final : Stmt {
-  Expr* cond;
-  BasicBlock* iftrue;
-  BasicBlock* iffalse;
+struct Jump final : Stmt, std::tuple<BasicBlock*> {
+  using tuple::tuple;
 
-  CJump(Expr* cond, BasicBlock* iftrue, BasicBlock* iffalse)
-      : cond(cond), iftrue(iftrue), iffalse(iffalse) {}
+  BasicBlock* target() const { return std::get<0>(*this); }
+
+  void accept(StmtVisitor* v) override { v->visit(this); }
+
+  bool isTerminator() const override { return true; }
+};
+
+struct CJump final : Stmt, std::tuple<const Expr*, BasicBlock*, BasicBlock*> {
+  using tuple::tuple;
+
+  const Expr* cond() const { return std::get<0>(*this); }
+  BasicBlock* iftrue() const { return std::get<1>(*this); }
+  BasicBlock* iffalse() const { return std::get<2>(*this); }
 
   void accept(StmtVisitor* v) override { v->visit(this); }
 
@@ -200,42 +203,61 @@ struct BasicBlock final : std::vector<Stmt*> {
 
   bool isTerminated() const;
   Stmt* terminator() const;
-
-  Name* NAME(ast::Symbol* sym);
-  Code* CODE(std::string text, int line = -1);
-  CharLiteral* CHAR_LITERAL(std::string value, int line = -1);
-
-  void EXP(Expr* expr);
-  void EXP(std::string text, int line = -1);
-  void SAVE(Temp* target);
-  void RESTORE(Temp* source);
-  void MOVE(Expr* target, Expr* source);
-  void JUMP(BasicBlock* target);
-  void CJUMP(Expr* cond, BasicBlock* iftrue, BasicBlock* iffalse);
-  void RET(bool result);
 };
 
-struct Function final : std::vector<BasicBlock*> {
-  std::forward_list<Exp> exps;
-  std::forward_list<Code> codes;
-  std::forward_list<Move> moves;
-  std::forward_list<Save> saves;
-  std::forward_list<Restore> restores;
-  std::forward_list<Ret> rets;
-  std::forward_list<Jump> jumps;
-  std::forward_list<CJump> cjumps;
-  std::forward_list<Name> names;
-  std::forward_list<Temp> temps;
-  std::forward_list<CharLiteral> charLiterals;
-  std::forward_list<BasicBlock> blocks;
-  unsigned uniqueTempCount = 0;
+class Function final : public std::vector<BasicBlock*> {
+ public:
+  using vector::vector;
 
-  Temp* newTemp(std::string type = std::string());
-  Temp* newTemp(std::string type, std::string name);
+  std::set<Temp> temps;
+
+ private:
+  friend class IRBuilder;
+
+  std::set<Name> names_;
+  std::set<CharLiteral> charLiterals_;
+  std::set<Code> codes_;
+
+  std::forward_list<Exp> exps_;
+  std::forward_list<Move> moves_;
+  std::forward_list<Save> saves_;
+  std::forward_list<Restore> restores_;
+  std::forward_list<Ret> rets_;
+  std::forward_list<Jump> jumps_;
+  std::forward_list<CJump> cjumps_;
+  std::forward_list<BasicBlock> blocks_;
+  unsigned uniqueTempCount_ = 0;
+};
+
+class IRBuilder {
+ public:
+  IRBuilder() = default;
+  IRBuilder(Function* function);
+
+  Function* function() const;
+  void setFunction(Function* function);
 
   BasicBlock* newBasicBlock();
 
+  const Temp* newTemp(std::string type = std::string());
+  const Temp* getTemp(std::string type, std::string name);
+  const Name* getName(ast::Symbol* sym);
+  const Code* getCode(std::string text, int line);
+  const CharLiteral* getCharLiteral(std::string value, int line);
+
   void place(BasicBlock* block);
+  void exp(const Expr* expr);
+  void exp(std::string text, int line = -1);
+  void save(const Temp* target);
+  void restore(const Temp* source);
+  void move(const Expr* target, const Expr* source);
+  void jump(BasicBlock* target);
+  void cjump(const Expr* cond, BasicBlock* iftrue, BasicBlock* iffalse);
+  void ret(bool result);
+
+ private:
+  Function* function_ = nullptr;
+  BasicBlock* block_ = nullptr;
 };
 
 }  // namespace IR

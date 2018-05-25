@@ -40,19 +40,10 @@ class CodeGenerator : public ast::Visitor {
         : iftrue(iftrue), iffalse(iffalse) {}
   };
 
-  IR::Temp* newTemp(std::string type = std::string());
-  IR::Temp* newTemp(std::string type, std::string name);
-
-  IR::BasicBlock* newBasicBlock();
-
-  void place(IR::BasicBlock* block);
-
   void condition(ast::Node* item, IR::BasicBlock* iftrue,
                  IR::BasicBlock* iffalse);
 
  protected:
   std::ostream& out;
   Result code;
-  IR::Function* function = nullptr;
-  IR::BasicBlock* block = nullptr;
 };

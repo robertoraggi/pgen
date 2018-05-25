@@ -75,42 +75,44 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
 
  private:
   void visit(IR::Exp* e) {
-    if (auto c = e->expr->asCode()) {
-      out << '\t' << c->text << ';' << std::endl;
+    if (auto c = e->expr()->asCode()) {
+      out << '\t' << c->text() << ';' << std::endl;
     } else {
       assert(!"unreachable");
     }
   }
 
-  void visit(IR::Code*) { assert(!"unreachable"); }
-  void visit(IR::CharLiteral*) { assert(!"unreachable"); }
+  void visit(const IR::Code*) { assert(!"unreachable"); }
+  void visit(const IR::CharLiteral*) { assert(!"unreachable"); }
+  void visit(const IR::Name*) { assert(!"unreachable"); }
+  void visit(const IR::Temp* temp) { out << temp->name(); }
 
   void visit(IR::Move* m) {
-    m->target->accept(this);
+    m->target()->accept(this);
     out << " = ";
-    m->source->accept(this);
+    m->source()->accept(this);
     out << ';' << std::endl;
   }
 
   void visit(IR::Save* s) {
     out << "\t";
-    s->target->accept(this);
+    s->target()->accept(this);
     out << " = yycursor;" << std::endl;
   }
 
   void visit(IR::Restore* s) {
     out << "\tif (";
-    s->source->accept(this);
+    s->source()->accept(this);
     out << " > yyparsed) yyparsed = ";
-    s->source->accept(this);
+    s->source()->accept(this);
     out << ";" << std::endl;
     out << "\tyyrewind(";
-    s->source->accept(this);
+    s->source()->accept(this);
     out << ");" << std::endl;
   }
 
   void visit(IR::Ret* r) {
-    if (r->result) {
+    if (r->result()) {
       out << "\treturn true;" << std::endl;
       return;
     }
@@ -119,22 +121,22 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
   }
 
   void visit(IR::Jump* j) {
-    if (nextBlock == j->target) {
+    if (nextBlock == j->target()) {
       out << std::endl;
       return;
     }
 
-    fmt::print(out, "\tgoto L{0};", j->target->index);
+    fmt::print(out, "\tgoto L{0};", j->target()->index);
     out << std::endl;
   }
 
-  void outCJump(IR::CJump* cj, IR::Name* name) {
-    IR::BasicBlock* target = cj->iftrue;
-    IR::BasicBlock* cont = cj->iffalse;
+  void outCJump(IR::CJump* cj, const IR::Name* name) {
+    IR::BasicBlock* target = cj->iftrue();
+    IR::BasicBlock* cont = cj->iffalse();
     std::string unop = "";
     std::string binop = "==";
 
-    if (nextBlock == cj->iftrue) {
+    if (nextBlock == cj->iftrue()) {
       std::swap(target, cont);
       unop = "!";
       binop = "!=";
@@ -142,18 +144,18 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
 
     if (FLAGS_lines) {
       out << std::endl;
-      fmt::print(out, "#line {0} \"{1}\"", name->sym->line, FLAGS_input);
+      fmt::print(out, "#line {0} \"{1}\"", name->sym()->line, FLAGS_input);
       out << std::endl;
     }
 
-    const auto& id = name->sym->name;
+    const auto& id = name->sym()->name;
 
     if (grammar->terminals.find(id) != grammar->terminals.end()) {
       fmt::print(out, "\tif (yytoken() {0} {1}) goto L{2};", binop,
                  tokenName(id), target->index);
     } else {
       fmt::print(out, "\tif ({0}parse_{1}({2})) goto L{3};", unop, id,
-                 name->sym->extra, target->index);
+                 name->sym()->extra, target->index);
     }
 
     out << std::endl;
@@ -164,25 +166,25 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
     }
   }
 
-  void outCJump(IR::CJump* cj, IR::Code* c) {
-    IR::BasicBlock* target = cj->iftrue;
-    IR::BasicBlock* cont = cj->iffalse;
+  void outCJump(IR::CJump* cj, const IR::Code* c) {
+    IR::BasicBlock* target = cj->iftrue();
+    IR::BasicBlock* cont = cj->iffalse();
     std::string unop = "";
 
-    if (nextBlock == cj->iftrue) {
+    if (nextBlock == cj->iftrue()) {
       std::swap(target, cont);
       unop = "!";
     }
 
     if (FLAGS_lines) {
       out << std::endl;
-      fmt::print(out, "#line {0} \"{1}\"", c->line, FLAGS_input);
+      fmt::print(out, "#line {0} \"{1}\"", c->line(), FLAGS_input);
       out << std::endl;
     }
 
     fmt::print(out,
                "\tif ({0}([&]() -> bool {{{1} return true; }})()) goto L{2};",
-               unop, indent(c->text), target->index);
+               unop, indent(c->text()), target->index);
 
     out << std::endl;
 
@@ -192,13 +194,13 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
     }
   }
 
-  void outCJump(IR::CJump* cj, IR::CharLiteral* literal) {
-    IR::BasicBlock* target = cj->iftrue;
-    IR::BasicBlock* cont = cj->iffalse;
+  void outCJump(IR::CJump* cj, const IR::CharLiteral* literal) {
+    IR::BasicBlock* target = cj->iftrue();
+    IR::BasicBlock* cont = cj->iffalse();
     std::string unop = "";
     std::string binop = "==";
 
-    if (nextBlock == cj->iftrue) {
+    if (nextBlock == cj->iftrue()) {
       std::swap(target, cont);
       unop = "!";
       binop = "!=";
@@ -206,12 +208,12 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
 
     if (FLAGS_lines) {
       out << std::endl;
-      fmt::print(out, "#line {0} \"{1}\"", literal->line, FLAGS_input);
+      fmt::print(out, "#line {0} \"{1}\"", literal->line(), FLAGS_input);
       out << std::endl;
     }
 
     fmt::print(out, "\tif (yytoken() {0} {1}) goto L{2};", binop,
-               literal->value, target->index);
+               literal->value(), target->index);
 
     out << std::endl;
 
@@ -222,20 +224,16 @@ class Print final : IR::ExprVisitor, IR::StmtVisitor {
   }
 
   void visit(IR::CJump* cj) {
-    if (auto name = cj->cond->asName()) {
+    if (auto name = cj->cond()->asName()) {
       outCJump(cj, name);
-    } else if (auto code = cj->cond->asCode()) {
+    } else if (auto code = cj->cond()->asCode()) {
       outCJump(cj, code);
-    } else if (auto charLiteral = cj->cond->asCharLiteral()) {
+    } else if (auto charLiteral = cj->cond()->asCharLiteral()) {
       outCJump(cj, charLiteral);
     } else {
       assert(!"unreachable");
     }
   }
-
-  void visit(IR::Name*) { assert(!"unreachable"); }
-
-  void visit(IR::Temp* temp) { out << temp->name; }
 
  private:
   std::ostream& out;
@@ -313,20 +311,21 @@ void GenParser::visit(ast::Grammar* grammar) {
 
 void GenParser::visit(ast::Rule* rule) {
   IR::Function f;
-  function = &f;
+
+  setFunction(&f);
 
   auto entryBlock = newBasicBlock();
   auto iftrue = newBasicBlock();
   auto iffalse = newBasicBlock();
+  auto target = newTemp();
 
   place(entryBlock);
-  auto target = newTemp();
-  block->SAVE(target);
+  save(target);
   condition(rule->def, iftrue, iffalse);
   place(iffalse);
-  block->RET(false);
+  ret(false);
   place(iftrue);
-  block->RET(true);
+  ret(true);
 
   out << std::endl;
 
@@ -347,9 +346,9 @@ void GenParser::visit(ast::Rule* rule) {
         << std::endl;
   }
 
-  for (auto& temp : function->temps) {
-    if (!p.insert(temp.name).second) continue;
-    fmt::print(out, "\t{0} {1};", temp.type, temp.name);
+  for (auto& temp : function()->temps) {
+    if (!p.insert(temp.name()).second) continue;
+    fmt::print(out, "\t{0} {1};", temp.type(), temp.name());
     out << std::endl;
   }
 
@@ -360,109 +359,110 @@ void GenParser::visit(ast::Rule* rule) {
   out << "}" << std::endl;
 }
 
-void GenParser::visit(ast::CharLiteral* node) {
+void GenParser::visit(ast::CharLiteral* literal) {
   auto iftrue = newBasicBlock();
-  block->CJUMP(block->CHAR_LITERAL(node->value, node->line), iftrue,
-               code.iffalse);
+
+  cjump(getCharLiteral(literal->value, literal->line), iftrue, code.iffalse);
   place(iftrue);
-  block->EXP("yyconsume()");
-  block->JUMP(code.iftrue);
+  exp("yyconsume()");
+  jump(code.iftrue);
 }
 
 void GenParser::visit(ast::Symbol* sym) {
   if (grammar_->terminals.find(sym->name) != grammar_->terminals.end()) {
     auto iftrue = newBasicBlock();
-    block->CJUMP(block->NAME(sym), iftrue, code.iffalse);
+
+    cjump(getName(sym), iftrue, code.iffalse);
     place(iftrue);
-    block->EXP("yyconsume()");
-    block->JUMP(code.iftrue);
+    exp("yyconsume()");
+    jump(code.iftrue);
     return;
   }
-  block->CJUMP(block->NAME(sym), code.iftrue, code.iffalse);
+
+  cjump(getName(sym), code.iftrue, code.iffalse);
 }
 
-void GenParser::visit(ast::Code* c) {
-  block->CJUMP(block->CODE(c->text, c->line), code.iftrue, code.iffalse);
+void GenParser::visit(ast::Code* node) {
+  cjump(getCode(node->text, node->line), code.iftrue, code.iffalse);
 }
 
-void GenParser::visit(ast::Lookahead* p) {
+void GenParser::visit(ast::Lookahead* node) {
   auto iftrue = newBasicBlock();
   auto cleanup_iftrue = newBasicBlock();
   auto cleanup_iffalse = newBasicBlock();
-
-  condition(p->head, iftrue, code.iffalse);
-
   auto target = newTemp();
-  place(iftrue);
-  block->SAVE(target);
-  condition(p->tail, cleanup_iftrue, cleanup_iffalse);
 
+  condition(node->head, iftrue, code.iffalse);
+  place(iftrue);
+  save(target);
+  condition(node->tail, cleanup_iftrue, cleanup_iffalse);
   place(cleanup_iftrue);
-  block->RESTORE(target);
-  block->JUMP(code.iftrue);
-
+  restore(target);
+  jump(code.iftrue);
   place(cleanup_iffalse);
-  block->RESTORE(target);
-  block->JUMP(code.iffalse);
+  restore(target);
+  jump(code.iffalse);
 }
 
-void GenParser::visit(ast::And* p) {
+void GenParser::visit(ast::And* node) {
   auto iftrue = newBasicBlock();
-  condition(p->head, iftrue, code.iffalse);
+
+  condition(node->head, iftrue, code.iffalse);
   place(iftrue);
-  condition(p->tail, code.iftrue, code.iffalse);
+  condition(node->tail, code.iftrue, code.iffalse);
 }
 
-void GenParser::visit(ast::Or* p) {
-  auto target = newTemp();
-  block->SAVE(target);
+void GenParser::visit(ast::Or* node) {
   auto iffalse = newBasicBlock();
-  condition(p->head, code.iftrue, iffalse);
+  auto target = newTemp();
+
+  save(target);
+  condition(node->head, code.iftrue, iffalse);
   place(iffalse);
-  block->RESTORE(target);
-  condition(p->tail, code.iftrue, code.iffalse);
+  restore(target);
+  condition(node->tail, code.iftrue, code.iffalse);
 }
 
-void GenParser::visit(ast::Plus* p) {
+void GenParser::visit(ast::Plus* node) {
   auto more = newBasicBlock();
-  condition(p->item, more, code.iffalse);
+  auto iftrue = newBasicBlock();
+  auto iffalse = newBasicBlock();
+  auto target = newTemp();
+
+  condition(node->item, more, code.iffalse);
   place(more);
+  jump(iftrue);
+  place(iftrue);
+  save(target);
+  condition(node->item, iftrue, iffalse);
+  place(iffalse);
+  restore(target);
+  jump(code.iftrue);
+}
 
+void GenParser::visit(ast::Star* node) {
   auto iftrue = newBasicBlock();
   auto iffalse = newBasicBlock();
   auto target = newTemp();
 
-  block->JUMP(iftrue);
+  jump(iftrue);
   place(iftrue);
-  block->SAVE(target);
-  condition(p->item, iftrue, iffalse);
+  save(target);
+  condition(node->item, iftrue, iffalse);
   place(iffalse);
-  block->RESTORE(target);
-  block->JUMP(code.iftrue);
+  restore(target);
+  jump(code.iftrue);
 }
 
-void GenParser::visit(ast::Star* p) {
-  auto iftrue = newBasicBlock();
+void GenParser::visit(ast::Question* node) {
   auto iffalse = newBasicBlock();
   auto target = newTemp();
 
-  block->JUMP(iftrue);
-  place(iftrue);
-  block->SAVE(target);
-  condition(p->item, iftrue, iffalse);
+  save(target);
+  condition(node->item, code.iftrue, iffalse);
   place(iffalse);
-  block->RESTORE(target);
-  block->JUMP(code.iftrue);
-}
-
-void GenParser::visit(ast::Question* p) {
-  auto target = newTemp();
-  auto iffalse = newBasicBlock();
-  block->SAVE(target);
-  condition(p->item, code.iftrue, iffalse);
-  place(iffalse);
-  block->RESTORE(target);
-  block->JUMP(code.iftrue);
+  restore(target);
+  jump(code.iftrue);
 }
 
 void GenParser::operator()(ast::Grammar* grammar,

@@ -36,89 +36,92 @@ Stmt* BasicBlock::terminator() const {
   return nullptr;
 }
 
-Name* BasicBlock::NAME(ast::Symbol* sym) {
-  function->names.emplace_front(sym);
-  return &function->names.front();
+const Name* IRBuilder::getName(ast::Symbol* sym) {
+  return &*function_->names_.emplace(sym).first;
 }
 
-Code* BasicBlock::CODE(std::string text, int line) {
-  function->codes.emplace_front(std::move(text), line);
-  return &function->codes.front();
+const Code* IRBuilder::getCode(std::string text, int line) {
+  return &*function_->codes_.emplace(std::move(text), line).first;
 }
 
-CharLiteral* BasicBlock::CHAR_LITERAL(std::string value, int line) {
-  function->charLiterals.emplace_front(std::move(value), line);
-  return &function->charLiterals.front();
+const CharLiteral* IRBuilder::getCharLiteral(std::string value, int line) {
+  return &*function_->charLiterals_.emplace(std::move(value), line).first;
 }
 
-void BasicBlock::EXP(Expr* expr) {
-  if (isTerminated()) return;
-  function->exps.emplace_front(expr);
-  push_back(&function->exps.front());
+void IRBuilder::exp(const Expr* expr) {
+  if (block_->isTerminated()) return;
+  function_->exps_.emplace_front(expr);
+  block_->push_back(&function_->exps_.front());
 }
 
-void BasicBlock::EXP(std::string text, int line) {
-  if (isTerminated()) return;
-  function->codes.emplace_front(std::move(text), line);
-  auto code = &function->codes.front();
-  function->exps.emplace_front(code);
-  push_back(&function->exps.front());
+void IRBuilder::exp(std::string text, int line) {
+  if (block_->isTerminated()) return;
+  function_->exps_.emplace_front(getCode(std::move(text), line));
+  block_->push_back(&function_->exps_.front());
 }
 
-void BasicBlock::SAVE(Temp* target) {
-  if (isTerminated()) return;
-  function->saves.emplace_front(target);
-  push_back(&function->saves.front());
+void IRBuilder::save(const Temp* target) {
+  if (block_->isTerminated()) return;
+  function_->saves_.emplace_front(target);
+  block_->push_back(&function_->saves_.front());
 }
 
-void BasicBlock::RESTORE(Temp* source) {
-  if (isTerminated()) return;
-  function->restores.emplace_front(source);
-  push_back(&function->restores.front());
+void IRBuilder::restore(const Temp* source) {
+  if (block_->isTerminated()) return;
+  function_->restores_.emplace_front(source);
+  block_->push_back(&function_->restores_.front());
 }
 
-void BasicBlock::MOVE(Expr* target, Expr* source) {
-  if (isTerminated()) return;
-  function->moves.emplace_front(target, source);
-  push_back(&function->moves.front());
+void IRBuilder::move(const Expr* target, const Expr* source) {
+  if (block_->isTerminated()) return;
+  function_->moves_.emplace_front(target, source);
+  block_->push_back(&function_->moves_.front());
 }
 
-void BasicBlock::JUMP(BasicBlock* target) {
-  if (isTerminated()) return;
-  function->jumps.emplace_front(target);
-  push_back(&function->jumps.front());
+void IRBuilder::jump(BasicBlock* target) {
+  if (block_->isTerminated()) return;
+  function_->jumps_.emplace_front(target);
+  block_->push_back(&function_->jumps_.front());
 }
 
-void BasicBlock::CJUMP(Expr* cond, BasicBlock* iftrue, BasicBlock* iffalse) {
-  if (isTerminated()) return;
-  function->cjumps.emplace_front(cond, iftrue, iffalse);
-  push_back(&function->cjumps.front());
+void IRBuilder::cjump(const Expr* cond, BasicBlock* iftrue,
+                      BasicBlock* iffalse) {
+  if (block_->isTerminated()) return;
+  function_->cjumps_.emplace_front(cond, iftrue, iffalse);
+  block_->push_back(&function_->cjumps_.front());
 }
 
-void BasicBlock::RET(bool result) {
-  if (isTerminated()) return;
-  function->rets.emplace_front(result);
-  push_back(&function->rets.front());
+void IRBuilder::ret(bool result) {
+  if (block_->isTerminated()) return;
+  function_->rets_.emplace_front(result);
+  block_->push_back(&function_->rets_.front());
 }
 
-Temp* Function::newTemp(std::string type) {
-  return newTemp(std::move(type), fmt::format("yy{}", uniqueTempCount++));
+const Temp* IRBuilder::newTemp(std::string type) {
+  return getTemp(std::move(type),
+                 fmt::format("yy{}", function_->uniqueTempCount_++));
 }
 
-Temp* Function::newTemp(std::string type, std::string name) {
-  temps.emplace_front(std::move(type), std::move(name));
-  return &temps.front();
+const Temp* IRBuilder::getTemp(std::string type, std::string name) {
+  return &*function_->temps.emplace(std::move(type), std::move(name)).first;
 }
 
-BasicBlock* Function::newBasicBlock() {
-  blocks.emplace_front(this);
-  return &blocks.front();
-}
+Function* IRBuilder::function() const { return function_; }
 
-void Function::place(BasicBlock* block) {
+void IRBuilder::setFunction(Function* function) { function_ = function; }
+
+void IRBuilder::place(BasicBlock* block) {
+  assert(block);
+  assert(block->function == function_);
   assert(block->index == -1);
-  block->index = size();
-  push_back(block);
+  block_ = block;
+  block_->index = function_->size();
+  function_->push_back(block_);
+}
+
+BasicBlock* IRBuilder::newBasicBlock() {
+  function_->blocks_.emplace_front(function_);
+  return &function_->blocks_.front();
 }
 
 }  // namespace IR

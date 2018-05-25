@@ -20,16 +20,13 @@
 
 #pragma once
 
-#include "pgen/code-generator.h"
-#include "pgen/token.h"
+#include "pgen/ast.h"
 
-#include <iostream>
+namespace ast {
 
-class GenParser final : CodeGenerator, IR::IRBuilder {
+class DisposeAST final : ast::Visitor {
  public:
-  GenParser(std::ostream& out);
-
-  void operator()(ast::Grammar* g, const std::vector<Token>& verbatim);
+  void operator()(ast::Node* node);
 
  private:
   void visit(ast::Grammar* node) override;
@@ -43,8 +40,6 @@ class GenParser final : CodeGenerator, IR::IRBuilder {
   void visit(ast::Plus* node) override;
   void visit(ast::Star* node) override;
   void visit(ast::Question* node) override;
-
- private:
-  ast::Grammar* grammar_ = nullptr;
-  const std::vector<Token>* verbatim_ = nullptr;
 };
+
+}  // namespace ast
