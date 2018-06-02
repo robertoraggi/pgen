@@ -125,6 +125,7 @@ struct Symbol final : Node {
   std::string name;
   std::string extra;
   int line;
+  bool isTerminal = false;
 
   Symbol(std::string name, std::string extra, int line)
       : name(std::move(name)), extra(std::move(extra)), line(line) {}

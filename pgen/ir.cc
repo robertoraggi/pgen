@@ -72,7 +72,7 @@ void IRBuilder::restore(const Temp* source) {
   block_->push_back(&function_->restores_.front());
 }
 
-void IRBuilder::move(const Expr* target, const Expr* source) {
+void IRBuilder::move(const Temp* target, const Temp* source) {
   if (block_->isTerminated()) return;
   function_->moves_.emplace_front(target, source);
   block_->push_back(&function_->moves_.front());

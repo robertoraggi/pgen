@@ -20,6 +20,7 @@
 
 #include "pgen/gen-parser.h"
 #include "pgen/flags.h"
+#include "pgen/ir-print.h"
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -29,224 +30,10 @@
 
 namespace {
 
-std::string tokenName(const std::string& t) {
-  std::string name = "T_";
-  for (auto&& x : t) name += std::toupper(x);
-  return name;
-}
+void print(std::ostream& out, IR::Function* fun) {
+  IR::Print print(out);
 
-std::string indent(const std::string& text) {
-  std::string prefix;
-
-  size_t i = 0;
-  for (; i < text.size(); ++i) {
-    if (text[i] != '\n') break;
-  }
-
-  for (; i < text.size(); ++i) {
-    if (text[i] == '\n' || !std::isspace(text[i])) break;
-    prefix += text[i];
-  }
-
-  std::string out;
-
-  for (size_t i = 0; i < text.size();) {
-    if (text[i] == '\n' && text.compare(i + 1, prefix.size(), prefix) == 0) {
-      i += prefix.size() + 1;
-      out += "\n\t";
-    } else {
-      out += text[i++];
-    }
-  }
-
-  return out;
-}
-
-}  // namespace
-
-class Print final : IR::ExprVisitor, IR::StmtVisitor {
- public:
-  Print(std::ostream& out, ast::Grammar* grammar)
-      : out(out), grammar(grammar) {}
-
-  void operator()(IR::Stmt* s) { s->accept(this); }
-
-  void setNextBasicBlock(IR::BasicBlock* block) { nextBlock = block; }
-
- private:
-  void visit(IR::Exp* e) {
-    if (auto c = e->expr()->asCode()) {
-      out << '\t' << c->text() << ';' << std::endl;
-    } else {
-      assert(!"unreachable");
-    }
-  }
-
-  void visit(const IR::Code*) { assert(!"unreachable"); }
-  void visit(const IR::CharLiteral*) { assert(!"unreachable"); }
-  void visit(const IR::Name*) { assert(!"unreachable"); }
-  void visit(const IR::Temp* temp) { out << temp->name(); }
-
-  void visit(IR::Move* m) {
-    m->target()->accept(this);
-    out << " = ";
-    m->source()->accept(this);
-    out << ';' << std::endl;
-  }
-
-  void visit(IR::Save* s) {
-    out << "\t";
-    s->target()->accept(this);
-    out << " = yycursor;" << std::endl;
-  }
-
-  void visit(IR::Restore* s) {
-    out << "\tif (";
-    s->source()->accept(this);
-    out << " > yyparsed) yyparsed = ";
-    s->source()->accept(this);
-    out << ";" << std::endl;
-    out << "\tyyrewind(";
-    s->source()->accept(this);
-    out << ");" << std::endl;
-  }
-
-  void visit(IR::Ret* r) {
-    if (r->result()) {
-      out << "\treturn true;" << std::endl;
-      return;
-    }
-    out << "\tyyrewind(yyparsed);" << std::endl;
-    out << "\treturn false;" << std::endl;
-  }
-
-  void visit(IR::Jump* j) {
-    if (nextBlock == j->target()) {
-      out << std::endl;
-      return;
-    }
-
-    fmt::print(out, "\tgoto L{0};", j->target()->index);
-    out << std::endl;
-  }
-
-  void outCJump(IR::CJump* cj, const IR::Name* name) {
-    IR::BasicBlock* target = cj->iftrue();
-    IR::BasicBlock* cont = cj->iffalse();
-    std::string unop = "";
-    std::string binop = "==";
-
-    if (nextBlock == cj->iftrue()) {
-      std::swap(target, cont);
-      unop = "!";
-      binop = "!=";
-    }
-
-    if (FLAGS_lines) {
-      out << std::endl;
-      fmt::print(out, "#line {0} \"{1}\"", name->sym()->line, FLAGS_input);
-      out << std::endl;
-    }
-
-    const auto& id = name->sym()->name;
-
-    if (grammar->terminals.find(id) != grammar->terminals.end()) {
-      fmt::print(out, "\tif (yytoken() {0} {1}) goto L{2};", binop,
-                 tokenName(id), target->index);
-    } else {
-      fmt::print(out, "\tif ({0}parse_{1}({2})) goto L{3};", unop, id,
-                 name->sym()->extra, target->index);
-    }
-
-    out << std::endl;
-
-    if (cont != nextBlock) {
-      fmt::print(out, "\tgoto L{0};", cont->index);
-      out << std::endl;
-    }
-  }
-
-  void outCJump(IR::CJump* cj, const IR::Code* c) {
-    IR::BasicBlock* target = cj->iftrue();
-    IR::BasicBlock* cont = cj->iffalse();
-    std::string unop = "";
-
-    if (nextBlock == cj->iftrue()) {
-      std::swap(target, cont);
-      unop = "!";
-    }
-
-    if (FLAGS_lines) {
-      out << std::endl;
-      fmt::print(out, "#line {0} \"{1}\"", c->line(), FLAGS_input);
-      out << std::endl;
-    }
-
-    fmt::print(out,
-               "\tif ({0}([&]() -> bool {{{1} return true; }})()) goto L{2};",
-               unop, indent(c->text()), target->index);
-
-    out << std::endl;
-
-    if (cont != nextBlock) {
-      fmt::print(out, "\tgoto L{0};", cont->index);
-      out << std::endl;
-    }
-  }
-
-  void outCJump(IR::CJump* cj, const IR::CharLiteral* literal) {
-    IR::BasicBlock* target = cj->iftrue();
-    IR::BasicBlock* cont = cj->iffalse();
-    std::string unop = "";
-    std::string binop = "==";
-
-    if (nextBlock == cj->iftrue()) {
-      std::swap(target, cont);
-      unop = "!";
-      binop = "!=";
-    }
-
-    if (FLAGS_lines) {
-      out << std::endl;
-      fmt::print(out, "#line {0} \"{1}\"", literal->line(), FLAGS_input);
-      out << std::endl;
-    }
-
-    fmt::print(out, "\tif (yytoken() {0} {1}) goto L{2};", binop,
-               literal->value(), target->index);
-
-    out << std::endl;
-
-    if (cont != nextBlock) {
-      fmt::print(out, "\tgoto L{0};", cont->index);
-      out << std::endl;
-    }
-  }
-
-  void visit(IR::CJump* cj) {
-    if (auto name = cj->cond()->asName()) {
-      outCJump(cj, name);
-    } else if (auto code = cj->cond()->asCode()) {
-      outCJump(cj, code);
-    } else if (auto charLiteral = cj->cond()->asCharLiteral()) {
-      outCJump(cj, charLiteral);
-    } else {
-      assert(!"unreachable");
-    }
-  }
-
- private:
-  std::ostream& out;
-  ast::Grammar* grammar = nullptr;
-  IR::BasicBlock* nextBlock = nullptr;
-};
-
-namespace {
-
-void print(std::ostream& out, ast::Grammar* grammar, IR::Function* fun) {
-  Print print(out, grammar);
-
-  for (auto&& block : *fun) {
+  for (auto block : *fun) {
     fmt::print(out, "L{0}:", block->index);
 
     if (size_t(block->index + 1) != fun->size())
@@ -254,7 +41,7 @@ void print(std::ostream& out, ast::Grammar* grammar, IR::Function* fun) {
     else
       print.setNextBasicBlock(0);
 
-    for (auto&& s : *block) print(s);
+    for (auto s : *block) print(s);
   }
 }
 
@@ -266,7 +53,7 @@ void GenParser::visit(ast::Grammar* grammar) {
   fmt::print(out, "struct {0} {{", FLAGS_parser_name);
   out << std::endl;
 
-  for (auto&& tk : *verbatim_) {
+  for (const auto& tk : *verbatim_) {
     if (FLAGS_lines) {
       out << std::endl;
       fmt::print(out, "#line {0} \"{1}\"", tk.line, FLAGS_input);
@@ -275,8 +62,8 @@ void GenParser::visit(ast::Grammar* grammar) {
     out << tk.text << std::endl;
   }
 
-  for (auto&& decl : grammar->externals) {
-    fmt::print(out, "  bool parse_{0}({1});", decl.first, decl.second);
+  for (const auto& [name, extra] : grammar->externals) {
+    fmt::print(out, "  bool parse_{0}({1});", name, extra);
     out << std::endl;
   }
 
@@ -342,8 +129,7 @@ void GenParser::visit(ast::Rule* rule) {
   std::set<std::string> p;
 
   if (!rule->init.empty()) {
-    out << "\t" << indent(std::string(rule->init, 1, rule->init.length() - 2))
-        << std::endl;
+    out << "\t" << rule->init.substr(1, rule->init.length() - 2) << std::endl;
   }
 
   for (auto& temp : function()->temps) {
@@ -354,7 +140,7 @@ void GenParser::visit(ast::Rule* rule) {
 
   out << "\tgoto L0;" << std::endl;
 
-  print(out, grammar_, &f);
+  print(out, &f);
 
   out << "}" << std::endl;
 }
@@ -369,7 +155,7 @@ void GenParser::visit(ast::CharLiteral* literal) {
 }
 
 void GenParser::visit(ast::Symbol* sym) {
-  if (grammar_->terminals.find(sym->name) != grammar_->terminals.end()) {
+  if (sym->isTerminal) {
     auto iftrue = newBasicBlock();
 
     cjump(getName(sym), iftrue, code.iffalse);

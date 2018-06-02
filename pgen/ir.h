@@ -138,11 +138,11 @@ struct Exp final : Stmt, std::tuple<const Expr*> {
   void accept(StmtVisitor* v) override { v->visit(this); }
 };
 
-struct Move final : Stmt, std::tuple<const Expr*, const Expr*> {
+struct Move final : Stmt, std::tuple<const Temp*, const Temp*> {
   using tuple::tuple;
 
-  const Expr* target() const { return std::get<0>(*this); }
-  const Expr* source() const { return std::get<0>(*this); }
+  const Temp* target() const { return std::get<0>(*this); }
+  const Temp* source() const { return std::get<0>(*this); }
 
   void accept(StmtVisitor* v) override { v->visit(this); }
 };
@@ -250,7 +250,7 @@ class IRBuilder {
   void exp(std::string text, int line = -1);
   void save(const Temp* target);
   void restore(const Temp* source);
-  void move(const Expr* target, const Expr* source);
+  void move(const Temp* target, const Temp* source);
   void jump(BasicBlock* target);
   void cjump(const Expr* cond, BasicBlock* iftrue, BasicBlock* iffalse);
   void ret(bool result);

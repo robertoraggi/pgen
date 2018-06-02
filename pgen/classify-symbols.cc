@@ -59,6 +59,9 @@ void ClassifySymbols::visit(ast::CharLiteral*) {}
 
 void ClassifySymbols::visit(ast::Symbol* sym) {
   grammar_->names.emplace(sym->name);
+
+  if (grammar_->terminals.find(sym->name) != grammar_->terminals.end())
+    sym->isTerminal = true;
 }
 
 void ClassifySymbols::visit(ast::Code*) {}
