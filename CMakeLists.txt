@@ -20,3 +20,17 @@ if(MSVC)
 endif()
 
 target_link_libraries(pgen fmt::fmt gflags)
+
+#
+# explicit targets and comments to regenerate the parser.
+#
+
+add_custom_command(
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT pgen/parser-pgen.h
+    DEPENDS pgen/parser.pgen
+    COMMAND pgen pgen/parser.pgen -o pgen/parser-pgen.h
+)
+
+add_custom_target(gen-parser
+    DEPENDS pgen/parser-pgen.h)

@@ -23,32 +23,32 @@
 #include <iostream>
 #include <string>
 
-enum struct TOK {
-  EOF_SYMBOL,
-  ERROR,
-  CHAR_LITERAL,
-  IDENTIFIER,
-  BAR,
-  EXTRA,
-  CODE,
-  COLON,
-  LPAREN,
-  PLUS,
-  POUND,
-  QUESTION,
-  COMMA,
-  RPAREN,
-  SEMICOLON,
-  SLASH,
-  STAR,
-  TEXT,
-  EXTERN,
-  TOKEN,
-  CLASS,
+enum TOK {
+  T_EOF_SYMBOL,
+  T_ERROR,
+  T_CHAR_LITERAL,
+  T_IDENTIFIER,
+  T_BAR,
+  T_EXTRA,
+  T_CODE,
+  T_COLON,
+  T_LPAREN,
+  T_PLUS,
+  T_POUND,
+  T_QUESTION,
+  T_COMMA,
+  T_RPAREN,
+  T_SEMICOLON,
+  T_SLASH,
+  T_STAR,
+  T_TEXT,
+  T_EXTERN,
+  T_TOKEN,
+  T_CLASS,
 };
 
 struct Token {
-  TOK kind = TOK::EOF_SYMBOL;
+  TOK kind = T_EOF_SYMBOL;
   int line = 0;
   std::string text;
 

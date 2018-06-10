@@ -31,7 +31,12 @@
 #include "pgen/flags.h"
 #include "pgen/gen-parser.h"
 #include "pgen/lexer.h"
-#include "pgen/parser.h"
+
+#include "pgen/parser-pgen.h"
+
+int Parser::yytoken(int n) {
+  return tokens[yycursor + n].kind;
+}
 
 namespace {
 
@@ -72,12 +77,17 @@ int main(int argc, char* argv[]) {
 
   std::vector<Token> tokens = Lexer::tokenize(ReadFile(FLAGS_input), &verbatim);
 
-  Parser parse(FLAGS_input, std::move(tokens));
+  Parser parser(tokens);
 
-  auto grammar = parse();
+  ast::Grammar* grammar = nullptr;
+  if (!parser.parse_grammar(grammar)) {
+    fmt::print(std::cerr, "{0}:{1}: error: unexpected token", FLAGS_input, tokens[parser.yyparsed].line);
+    std::cerr << std::endl;
+    return EXIT_FAILURE;
+  }
 
   if (!grammar->undef.empty()) {
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
 
   std::ofstream out(FLAGS_o);

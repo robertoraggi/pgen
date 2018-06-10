@@ -31,7 +31,7 @@ again:
   while (isspace(yychar)) yyinp();
   yytokenlineno = yylineno;
   yytext.clear();
-  if (!yychar) return TOK::EOF_SYMBOL;
+  if (!yychar) return T_EOF_SYMBOL;
   auto ch = yychar;
   yytext += ch;
   yyinp();
@@ -39,17 +39,17 @@ again:
     yyinp();
     skip('{', '{', '}');
     yytext = std::string(yytext, 2, yytext.length() - 4);
-    return TOK::TEXT;
+    return T_TEXT;
   }
   if (ch == '%' && isalpha(yychar)) {
     while (isalnum(yychar) || yychar == '_') {
       yytext += yychar;
       yyinp();
     }
-    if (yytext == "%extern") return TOK::EXTERN;
-    if (yytext == "%token") return TOK::TOKEN;
-    if (yytext == "%class") return TOK::CLASS;
-    return TOK::ERROR;
+    if (yytext == "%extern") return T_EXTERN;
+    if (yytext == "%token") return T_TOKEN;
+    if (yytext == "%class") return T_CLASS;
+    return T_ERROR;
   }
   if (ch == '/') {
     if (yychar == '/') {
@@ -70,7 +70,7 @@ again:
       }
       goto again;
     }
-    return TOK::SLASH;
+    return T_SLASH;
   }
   if (ch == '\'') {
     yytext = ch;
@@ -83,14 +83,14 @@ again:
       yytext += yychar;
       yyinp();
     }
-    if (yychar != '\'') return TOK::ERROR;
+    if (yychar != '\'') return T_ERROR;
     yytext += yychar;
     yyinp();
-    return TOK::CHAR_LITERAL;
+    return T_CHAR_LITERAL;
   }
   if (ch == '{') {
     skip(ch, '{', '}');
-    return TOK::CODE;
+    return T_CODE;
   }
   if (ch == '(') {
     auto pos = yypos - 2;
@@ -98,27 +98,27 @@ again:
     if (pos != yycode.cbegin() && (isalnum(pos[-1]) || pos[-1] == '_')) {
       skip(ch, '(', ')');
       yytext = std::string(yytext, 1, yytext.length() - 2);
-      return TOK::EXTRA;
+      return T_EXTRA;
     }
-    return TOK::LPAREN;
+    return T_LPAREN;
   }
-  if (ch == '#') return TOK::POUND;
-  if (ch == ')') return TOK::RPAREN;
-  if (ch == '*') return TOK::STAR;
-  if (ch == '+') return TOK::PLUS;
-  if (ch == ',') return TOK::COMMA;
-  if (ch == ':') return TOK::COLON;
-  if (ch == ';') return TOK::SEMICOLON;
-  if (ch == '?') return TOK::QUESTION;
-  if (ch == '|') return TOK::BAR;
+  if (ch == '#') return T_POUND;
+  if (ch == ')') return T_RPAREN;
+  if (ch == '*') return T_STAR;
+  if (ch == '+') return T_PLUS;
+  if (ch == ',') return T_COMMA;
+  if (ch == ':') return T_COLON;
+  if (ch == ';') return T_SEMICOLON;
+  if (ch == '?') return T_QUESTION;
+  if (ch == '|') return T_BAR;
   if (isalpha(ch) || ch == '_') {
     while (isalnum(yychar) || yychar == '_') {
       yytext += yychar;
       yyinp();
     }
-    return TOK::IDENTIFIER;
+    return T_IDENTIFIER;
   }
-  return TOK::ERROR;
+  return T_ERROR;
 }
 
 void Lexer::skip(char ch, char left, char right) {
@@ -181,11 +181,11 @@ std::vector<Token> Lexer::tokenize(std::string code,
   Token tk;
   do {
     tk = yylex();
-    if (tk.is(TOK::TEXT)) {
+    if (tk.is(T_TEXT)) {
       if (verbatim) verbatim->push_back(std::move(tk));
       continue;
     }
     tokens.push_back(std::move(tk));
-  } while (tk.isNot(TOK::EOF_SYMBOL));
+  } while (tk.isNot(T_EOF_SYMBOL));
   return tokens;
 }

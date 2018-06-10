@@ -1,0 +1,161 @@
+// Copyright (c) 2018 Roberto Raggi <roberto.raggi@gmail.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+%class Parser
+
+%token
+  EOF_SYMBOL,
+  ERROR,
+  CHAR_LITERAL,
+  IDENTIFIER,
+  BAR,
+  EXTRA,
+  CODE,
+  COLON,
+  LPAREN,
+  PLUS,
+  POUND,
+  QUESTION,
+  COMMA,
+  RPAREN,
+  SEMICOLON,
+  SLASH,
+  STAR,
+  TEXT,
+  EXTERN,
+  TOKEN,
+  CLASS
+
+%{
+std::vector<Token> tokens;
+ast::Grammar* grammar_ = nullptr;
+
+Parser(std::vector<Token> tokens)
+  : tokens(std::move(tokens))
+{
+}
+
+%}
+
+grammar(ast::Grammar*& grammar)
+{
+  ast::Rule* rule = nullptr;
+  grammar_ = new ast::Grammar();
+  grammar = grammar_;
+}
+: directive*
+  (rule(rule)
+    { grammar->rules.push_back(rule); }
+  )*
+  EOF_SYMBOL;
+
+directive
+: TOKEN token_symbol (COMMA token_symbol)*
+| EXTERN external_symbol (COMMA external_symbol)*
+| CLASS class_symbol
+| TEXT
+;
+
+class_symbol
+: IDENTIFIER
+    { FLAGS_parser_name = tokens[yycursor - 1].text; }
+;
+
+token_symbol
+: IDENTIFIER
+    { grammar_->terminals.emplace(tokens[yycursor - 1].text); }
+;
+
+external_symbol
+: IDENTIFIER EXTRA
+    { grammar_->externals.emplace(tokens[yycursor - 2].text, tokens[yycursor - 1].text); }
+| IDENTIFIER
+    { grammar_->externals.emplace(tokens[yycursor - 1].text, std::string()); }
+;
+
+rule(ast::Rule*& rule)
+{
+  ast::Node* def = nullptr;
+  rule = new ast::Rule();
+}
+: IDENTIFIER { rule->lhs = tokens[yycursor - 1].text; rule->line = tokens[yycursor - 1].line; }
+  (EXTRA { rule->extra = tokens[yycursor - 1].text; })?
+  (CODE { rule->init = tokens[yycursor - 1].text; })?
+  COLON alternative(rule->def) SEMICOLON
+;
+
+alternative(ast::Node*& node)
+{
+    ast::Node* tail = nullptr;
+}
+: sequence(node)
+    (BAR sequence(tail)
+      { node = new ast::Or(node, tail); }
+    )*;
+
+sequence(ast::Node*& node)
+{
+  ast::Node* tail = nullptr;
+}
+: postfix(node)
+    (lookat_postfix postfix(tail)
+      { node = new ast::And(node, tail); }
+    )*;
+
+postfix(ast::Node*& node)
+{
+    ast::Node* la = nullptr;
+}
+: primary(node)
+    ( QUESTION { node = new ast::Question(node); }
+    | STAR { node = new ast::Star(node); }
+    | PLUS { node = new ast::Plus(node); }
+    | SLASH primary(la) { node = new ast::Lookahead(node, la); }
+    )?;
+
+primary(ast::Node*& node)
+: IDENTIFIER EXTRA
+    {
+      auto sym = new ast::Symbol(tokens[yycursor - 2].text, tokens[yycursor - 1].text, tokens[yycursor - 1].line);
+      sym->isTerminal = grammar_->terminals.find(sym->name) != grammar_->terminals.end();
+      node = sym;
+    }
+| IDENTIFIER
+    {
+      auto sym = new ast::Symbol(tokens[yycursor - 1].text, std::string(), tokens[yycursor - 1].line);
+      sym->isTerminal = grammar_->terminals.find(sym->name) != grammar_->terminals.end();
+      node = sym;
+    }
+| CHAR_LITERAL { node = new ast::CharLiteral(tokens[yycursor - 1].text, tokens[yycursor - 1].line); }
+| CODE { node = new ast::Code(tokens[yycursor - 1].text, tokens[yycursor - 1].line); }
+| LPAREN alternative(node) RPAREN
+;
+
+lookat_postfix: {
+  switch (yytoken()) {
+  case T_IDENTIFIER:
+  case T_CHAR_LITERAL:
+  case T_CODE:
+  case T_LPAREN:
+    return true;
+  default:
+    return false;
+  } // switch
+};
