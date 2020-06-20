@@ -28,6 +28,7 @@
 
 #include <cctype>
 #include <iostream>
+#include <cassert>
 
 namespace IR {
 
