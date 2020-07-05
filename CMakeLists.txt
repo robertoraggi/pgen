@@ -10,7 +10,8 @@ set(CMAKE_CXX_STANDARD 17)
 aux_source_directory(pgen SOURCES)
 add_executable(pgen ${SOURCES})
 
-install(TARGETS pgen EXPORT pgen DESTINATION bin)
+install(TARGETS pgen EXPORT pgen-targets DESTINATION bin)
+install(EXPORT pgen-targets DESTINATION lib/pgen)
 
 target_include_directories(pgen PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
