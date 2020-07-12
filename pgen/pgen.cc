@@ -18,10 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <gflags/gflags.h>
-
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <gflags/gflags.h>
 
 #include <fstream>
 #include <iostream>
@@ -32,11 +31,18 @@
 #include "pgen/gen-parser.h"
 #include "pgen/lexer.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4102)
+#endif
+
 #include "pgen/parser-pgen.h"
 
-int Parser::yytoken(int n) {
-  return tokens[yycursor + n].kind;
-}
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+int Parser::yytoken(int n) { return tokens[yycursor + n].kind; }
 
 namespace {
 
@@ -81,7 +87,8 @@ int main(int argc, char* argv[]) {
 
   ast::Grammar* grammar = nullptr;
   if (!parser.parse_grammar(grammar)) {
-    fmt::print(std::cerr, "{0}:{1}: error: unexpected token", FLAGS_input, tokens[parser.yyparsed].line);
+    fmt::print(std::cerr, "{0}:{1}: error: unexpected token", FLAGS_input,
+               tokens[parser.yyparsed].line);
     std::cerr << std::endl;
     return EXIT_FAILURE;
   }

@@ -115,7 +115,7 @@ void IRBuilder::place(BasicBlock* block) {
   assert(block->function == function_);
   assert(block->index == -1);
   block_ = block;
-  block_->index = function_->size();
+  block_->index = int(function_->size());
   function_->push_back(block_);
 }
 
