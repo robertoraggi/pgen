@@ -42,11 +42,12 @@ again:
     return T_TEXT;
   }
   if (ch == '%' && isalpha(yychar)) {
-    while (isalnum(yychar) || yychar == '_') {
+    while (isalnum(yychar) || yychar == '_' || yychar == '-') {
       yytext += yychar;
       yyinp();
     }
     if (yytext == "%extern") return T_EXTERN;
+    if (yytext == "%token-type") return T_TOKEN_TYPE;
     if (yytext == "%token") return T_TOKEN;
     if (yytext == "%class") return T_CLASS;
     return T_ERROR;

@@ -20,22 +20,27 @@
 
 #include "pgen/ir-print.h"
 
-#include "pgen/flags.h"
-#include "pgen/token.h"
-
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
+#include <cassert>
 #include <cctype>
 #include <iostream>
-#include <cassert>
+
+#include "pgen/flags.h"
+#include "pgen/token.h"
 
 namespace IR {
 
 namespace {
 
 std::string tokenName(const std::string& spell) {
-  std::string name = "T_";
+  std::string name;
+  if (FLAGS_token_type != "int") {
+    name = FLAGS_token_type;
+    name += "::";
+  }
+  name += "T_";
   for (auto ch : spell) name += std::toupper(ch);
   return name;
 }

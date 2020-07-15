@@ -41,7 +41,8 @@
   TEXT,
   EXTERN,
   TOKEN,
-  CLASS
+  CLASS,
+  TOKEN_TYPE
 
 %{
 std::vector<Token> tokens;
@@ -70,6 +71,7 @@ directive
 : TOKEN token_symbol (COMMA token_symbol)*
 | EXTERN external_symbol (COMMA external_symbol)*
 | CLASS class_symbol
+| TOKEN_TYPE IDENTIFIER { FLAGS_token_type = tokens[yycursor - 1].text; }
 | TEXT
 ;
 

@@ -26,3 +26,4 @@ DECLARE_string(parser_name);
 DECLARE_string(o);
 DECLARE_bool(lines);
 DECLARE_string(input);
+DECLARE_string(token_type);

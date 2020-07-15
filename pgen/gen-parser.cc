@@ -19,14 +19,15 @@
 // SOFTWARE.
 
 #include "pgen/gen-parser.h"
-#include "pgen/flags.h"
-#include "pgen/ir-print.h"
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
 #include <cctype>
 #include <set>
+
+#include "pgen/flags.h"
+#include "pgen/ir-print.h"
 
 namespace {
 
@@ -81,11 +82,11 @@ void GenParser::visit(ast::Grammar* grammar) {
   // clang-format off
   out << std::endl;
   out << "  bool yyinvalid = true;" << std::endl;
-  out << "  int yytok = 0;" << std::endl;
-  out << "  inline int yytoken() { if (yyinvalid) { yytok = yytoken(0); yyinvalid = false; } return yytok; }" << std::endl;
+  out << "  " << FLAGS_token_type << " yytok{};" << std::endl;
+  out << "  inline " << FLAGS_token_type<< " yytoken() { if (yyinvalid) { yytok = yytoken(0); yyinvalid = false; } return yytok; }" << std::endl;
   out << "  inline void yyconsume() { ++yycursor; yyinvalid = true; }" << std::endl;
   out << "  inline void yyrewind(int i) { if (yycursor == i) return; yycursor = i; yyinvalid = true; }" << std::endl;
-  out << "  int yytoken(int index);" << std::endl;
+  out << "  " << FLAGS_token_type << " yytoken(int index);" << std::endl;
   out << std::endl;
   out << "  unsigned yyparsed = 0;" << std::endl;
   out << "  int yydepth = -1;" << std::endl;

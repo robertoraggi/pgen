@@ -24,3 +24,4 @@ DEFINE_string(parser_name, "Parser", "the name of the parser");
 DEFINE_bool(lines, true, "generate #line directives");
 DEFINE_string(o, "", "output file");
 DEFINE_string(input, "", "input file");
+DEFINE_string(token_type, "int", "the token type");
