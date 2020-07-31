@@ -37,7 +37,7 @@ if(NOT fmt_FOUND)
     FetchContent_MakeAvailable(fmt)
 endif()
 
-find_package(gflags CONFIG)
+find_package(gflags CONFIG QUIET)
 
 if(NOT gflags_FOUND)
     message(STATUS "fetching gflags")
@@ -65,6 +65,14 @@ if(MSVC)
     target_compile_definitions(pgen
         PRIVATE GFLAGS_DLL_DECLARE_FLAG=
                 GFLAGS_DLL_DEFINE_FLAG=
+    )
+endif()
+
+if(EMSCRIPTEN)
+    target_link_options(pgen PUBLIC
+        "SHELL:-s EXIT_RUNTIME=1"
+        "SHELL:-s NODERAWFS=1"
+        "SHELL:-s ALLOW_MEMORY_GROWTH=1"
     )
 endif()
 
