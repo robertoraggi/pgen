@@ -51,7 +51,11 @@ void print(std::ostream& out, IR::Function* fun) {
 GenParser::GenParser(std::ostream& out) : CodeGenerator(out) {}
 
 void GenParser::visit(ast::Grammar* grammar) {
-  fmt::print(out, "struct {0} {{", FLAGS_parser_name);
+  fmt::print(out, "struct {0}", FLAGS_parser_name);
+  if (!FLAGS_extends.empty()) {
+    fmt::print(out, ": {0}", FLAGS_extends);
+  }
+  fmt::print(out, " {{");
   out << std::endl;
 
   for (const auto& tk : *verbatim_) {

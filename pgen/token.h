@@ -45,6 +45,7 @@ enum TOK {
   T_EXTERN,
   T_TOKEN,
   T_CLASS,
+  T_EXTENDS,
   T_TOKEN_TYPE,
 };
 

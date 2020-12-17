@@ -21,6 +21,7 @@
 #include "pgen/flags.h"
 
 DEFINE_string(parser_name, "Parser", "the name of the parser");
+DEFINE_string(extends, "", "the class extended by the generated parser");
 DEFINE_bool(lines, true, "generate #line directives");
 DEFINE_string(o, "", "output file");
 DEFINE_string(input, "", "input file");

@@ -23,6 +23,7 @@
 #include <gflags/gflags.h>
 
 DECLARE_string(parser_name);
+DECLARE_string(extends);
 DECLARE_string(o);
 DECLARE_bool(lines);
 DECLARE_string(input);

@@ -50,6 +50,7 @@ again:
     if (yytext == "%token-type") return T_TOKEN_TYPE;
     if (yytext == "%token") return T_TOKEN;
     if (yytext == "%class") return T_CLASS;
+    if (yytext == "%extends") return T_EXTENDS;
     return T_ERROR;
   }
   if (ch == '/') {

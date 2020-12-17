@@ -42,6 +42,7 @@
   EXTERN,
   TOKEN,
   CLASS,
+  EXTENDS,
   TOKEN_TYPE
 
 %{
@@ -71,6 +72,7 @@ directive
 : TOKEN token_symbol (COMMA token_symbol)*
 | EXTERN external_symbol (COMMA external_symbol)*
 | CLASS class_symbol
+| EXTENDS base_symbol
 | TOKEN_TYPE IDENTIFIER { FLAGS_token_type = tokens[yycursor - 1].text; }
 | TEXT
 ;
@@ -78,6 +80,11 @@ directive
 class_symbol
 : IDENTIFIER
     { FLAGS_parser_name = tokens[yycursor - 1].text; }
+;
+
+base_symbol
+: IDENTIFIER
+    { FLAGS_extends = tokens[yycursor - 1].text; }
 ;
 
 token_symbol
