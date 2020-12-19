@@ -73,8 +73,6 @@ void Print::visit(IR::Save* s) {
 }
 
 void Print::visit(IR::Restore* s) {
-  fmt::print(out, "\tif ({0} > yyparsed) yyparsed = {0};", s->source()->name());
-  out << std::endl;
   fmt::print(out, "\tyyrewind({0});", s->source()->name());
   out << std::endl;
 }

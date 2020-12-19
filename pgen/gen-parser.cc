@@ -92,7 +92,6 @@ void GenParser::visit(ast::Grammar* grammar) {
   out << "  inline void yyrewind(int i) { if (yycursor == i) return; yycursor = i; yyinvalid = true; }" << std::endl;
   out << "  " << FLAGS_token_type << " yytoken(int index);" << std::endl;
   out << std::endl;
-  out << "  unsigned yyparsed = 0;" << std::endl;
   out << "  int yydepth = -1;" << std::endl;
   out << "  unsigned yycursor = 0;" << std::endl;
   out << "};" << std::endl;

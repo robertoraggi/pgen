@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
   ast::Grammar* grammar = nullptr;
   if (!parser.parse_grammar(grammar)) {
     fmt::print(std::cerr, "{0}:{1}: error: unexpected token", FLAGS_input,
-               tokens[parser.yyparsed].line);
+               tokens[parser.yycursor].line);
     std::cerr << std::endl;
     return EXIT_FAILURE;
   }
