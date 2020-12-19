@@ -109,10 +109,8 @@ void GenParser::visit(ast::Rule* rule) {
   auto entryBlock = newBasicBlock();
   auto iftrue = newBasicBlock();
   auto iffalse = newBasicBlock();
-  auto target = newTemp();
 
   place(entryBlock);
-  save(target);
   condition(rule->def, iftrue, iffalse);
   place(iffalse);
   ret(false);
@@ -170,7 +168,16 @@ void GenParser::visit(ast::Symbol* sym) {
     return;
   }
 
-  cjump(getName(sym), code.iftrue, code.iffalse);
+  auto temp = newTemp();
+  save(temp);
+
+  auto iffalse = newBasicBlock();
+
+  cjump(getName(sym), code.iftrue, iffalse);
+
+  place(iffalse);
+  restore(temp);
+  jump(code.iffalse);
 }
 
 void GenParser::visit(ast::Code* node) {

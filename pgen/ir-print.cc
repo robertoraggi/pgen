@@ -84,7 +84,6 @@ void Print::visit(IR::Ret* r) {
     out << "\treturn true;" << std::endl;
     return;
   }
-  out << "\tyyrewind(yyparsed);" << std::endl;
   out << "\treturn false;" << std::endl;
 }
 
